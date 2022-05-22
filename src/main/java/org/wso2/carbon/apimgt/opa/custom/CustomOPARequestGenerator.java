@@ -36,10 +36,20 @@ public class CustomOPARequestGenerator implements OPARequestGenerator {
 
         JSONObject response = new JSONObject(opaResponse);
         try {
-            return response.getBoolean("result");
+            org.apache.axis2.context.MessageContext axis2MessageContext = ((Axis2MessageContext) messageContext)
+                    .getAxis2MessageContext();
+            TreeMap<String, String> transportHeadersMap = (TreeMap<String, String>) axis2MessageContext
+                    .getProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
+            JSONObject result = response.getJSONObject("result");
+            if (result.getBoolean("allow")) {
+                String message = result.getString("message");
+                transportHeadersMap.put("X-OPA-Verification", message);
+                return true;
+            }
         } catch (JSONException e) {
             throw new OPASecurityException(OPASecurityException.INTERNAL_ERROR,
                     OPASecurityException.INTERNAL_ERROR_MESSAGE, e);
         }
+        return false;
     }
 }
